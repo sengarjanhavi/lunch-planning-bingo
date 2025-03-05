@@ -1,10 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import BingoCell from "./BingoCell";
 import Confetti from "./Confetti";
 import "./BingoBoard.css";
 
-
-const phrases = [
+const originalPhrases = [
   "I don't care, you choose", "Someone suggests sushi (again)", "Let’s go somewhere cheap",
   "Too far, let’s pick something closer", "I had that yesterday",
   "Someone mentions a diet", "Let’s try something new!", "Someone is craving burgers", "A debate over spicy vs. mild",
@@ -16,66 +15,64 @@ const phrases = [
   "Someone still isn’t happy with the choice","Can't we just have some dessert?"
 ];
 
-// Insert "Let's Plan Lunch!" in the center
-phrases.splice(12, 0, "Let's Plan Lunch!");
-
+const shuffleArray = (array) => {
+  let shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
 
 const BingoBoard = () => {
+  const [shuffledPhrases, setShuffledPhrases] = useState([]);
   const [selectedCells, setSelectedCells] = useState(["Let's Plan Lunch!"]);
   const [showConfetti, setShowConfetti] = useState(false);
-  const [previousBingos, setPreviousBingos] = useState(0); // Track how many Bingos occurred
+  const [previousBingos, setPreviousBingos] = useState(0);
+
+  useEffect(() => {
+    let newShuffled = shuffleArray(originalPhrases);
+    newShuffled.splice(12, 0, "Let's Plan Lunch!"); // Keep the center fixed
+    setShuffledPhrases(newShuffled);
+  }, []); // Runs only on component mount
 
   const checkBingo = (cells) => {
     const grid = Array(5).fill().map(() => Array(5).fill(false));
-    phrases.forEach((phrase, i) => {
+    shuffledPhrases.forEach((phrase, i) => {
       const row = Math.floor(i / 5);
       const col = i % 5;
       if (cells.includes(phrase)) {
         grid[row][col] = true;
       }
     });
-  
+
     let bingoCount = 0;
-  
-    // Check rows
     for (let i = 0; i < 5; i++) {
       if (grid[i].every(Boolean)) bingoCount++;
-    }
-  
-    // Check columns
-    for (let i = 0; i < 5; i++) {
       if (grid.map(row => row[i]).every(Boolean)) bingoCount++;
     }
-  
-    // Check diagonals
-    if ([0, 1, 2, 3, 4].every(i => grid[i][i])) bingoCount++; // Left-to-right diagonal
-    if ([0, 1, 2, 3, 4].every(i => grid[i][4 - i])) bingoCount++; // Right-to-left diagonal
-  
+    if ([0, 1, 2, 3, 4].every(i => grid[i][i])) bingoCount++;
+    if ([0, 1, 2, 3, 4].every(i => grid[i][4 - i])) bingoCount++;
     return bingoCount;
   };
-  
+
   const handleClick = (phrase) => {
     if (selectedCells.includes(phrase)) return;
-  
+
     const newSelection = [...selectedCells, phrase];
     setSelectedCells(newSelection);
-  
     const bingoCount = checkBingo(newSelection);
-  
+
     if (bingoCount > previousBingos) {
       setPreviousBingos(bingoCount);
-  
-      // Force re-render of Confetti
       setShowConfetti(false);
-      setTimeout(() => {
-        setShowConfetti(true);
-      }, 100);
+      setTimeout(() => setShowConfetti(true), 100);
     }
   };
 
   return (
     <div className="bingo-board">
-      {phrases.map((phrase, index) => (
+      {shuffledPhrases.map((phrase, index) => (
         <BingoCell
           key={index}
           text={phrase}
